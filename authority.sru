@@ -181,6 +181,7 @@ public function double getpartnerbalance (readonly string bearertoken, readonly 
 private function decimal parsenumber (ref string str, ref long index) throws linkhubexception
 private function string parsestring (ref string str, ref long index)
 private function any parsevalue (ref string str, ref long index) throws linkhubexception
+private function string parseNull (ref string str, ref long index) throws linkhubexception
 end prototypes
 
 private function string of_encode64 (blob ablob_data);String ls_encoded
@@ -830,10 +831,17 @@ choose case mid(str,index,1)
 	case 't','f'
 		return parseBoolean(str,index)
 	case 'n'
-//		return empty
+		return parseNull(str,index)
 	case else
 		return parseNumber(str,index)
 end choose
+end function
+
+private function string parseNull (ref string str, ref long index) throws linkhubexception;skipchar(str,index)
+if mid(str,index,4) = "null" then
+	index = index + 4
+	return ""
+end if
 end function
 
 on authority.create
@@ -848,3 +856,4 @@ end on
 
 event constructor;exception = create linkhubexception
 end event
+
