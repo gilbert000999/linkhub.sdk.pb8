@@ -173,7 +173,7 @@ private subroutine skipchar (ref string inputjson, ref long index)
 private function oleobject parseobject (ref string inputjson, ref long index) throws linkhubexception
 private function string parsekey (ref string inputjson, ref long index) throws linkhubexception
 public function any parsejson (string inputjson) throws linkhubexception
-private function any parsearray (ref string str, ref long index) throws linkhubexception
+private function tarray parsearray (ref string str, ref long index) throws linkhubexception
 private function boolean parseboolean (ref string str, ref long index) throws linkhubexception
 public function token gettoken (readonly string serviceid, readonly string access_id, readonly string scope[], readonly string forwardip) throws linkhubexception
 public function double getbalance (readonly string bearertoken, readonly string serviceid) throws linkhubexception
@@ -182,6 +182,7 @@ private function decimal parsenumber (ref string str, ref long index) throws lin
 private function string parsestring (ref string str, ref long index)
 private function any parsevalue (ref string str, ref long index) throws linkhubexception
 private function string parseNull (ref string str, ref long index) throws linkhubexception
+public function int lengthArr() throws linkhubexception
 end prototypes
 
 private function string of_encode64 (blob ablob_data);String ls_encoded
@@ -391,8 +392,6 @@ result = BlobMid(lblob_hash, 1, lul_DataLen)
 CryptDestroyHash(lul_hHash)
 CryptDestroyKey(hKey)
 CryptReleaseContext(lul_hProv, 0)
-
-
 return result
 end function
 
@@ -481,7 +480,13 @@ do
 	any value
 	value = parseValue(inputjson,index)
 	
-	resultDic.add(key,value)
+	if ClassName(value) = 'tarray' then
+		tarray t
+		t = value
+		resultDic.add(key,t.list)
+	else
+		resultDic.add(key,value)
+	end if
 	
 loop while true
 
@@ -555,8 +560,9 @@ end choose
 return result
 end function
 
-private function any parsearray (ref string str, ref long index) throws linkhubexception;any list[]
+private function tarray parsearray (ref string str, ref long index) throws linkhubexception;tarray tarrayList
 skipchar(str,index)
+tarrayList = create tarray
 if mid(str,index,1) <> '[' then throw exception.setCodeNMessage(-99999999,"invalid json")
 
 index = index + 1
@@ -574,11 +580,11 @@ do
 	elseif index > len(str) then
 		throw exception.setCodeNMessage(-99999999,"Missing ']' in json")
 	end if
-	list[i] = parseValue(str,index)
+	tarrayList.setObject(i,parseValue(str,index))
 	i = i + 1
 loop while true
 
-return list
+return tarrayList
 end function
 
 private function boolean parseboolean (ref string str, ref long index) throws linkhubexception;skipchar(str,index)
@@ -663,6 +669,10 @@ resultToken.expiration = dic.Item("expiration")
 resultToken.linkid = dic.Item("linkID")
 if isnull(dic.Item("usercode")) = False then resultToken.usercode = dic.Item("usercode")
 resultToken.ipaddress = dic.Item("ipaddress")
+
+any tmpVal
+tmpVal = dic.Item("scope")
+
 resultToken.scope = dic.Item("scope")
 
 dic.DisconnectObject()
