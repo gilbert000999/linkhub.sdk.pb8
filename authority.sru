@@ -168,7 +168,6 @@ private function blob of_decode64 (string as_encoded)
 private subroutine of_getlasterror (ref unsignedlong aul_error, ref string as_msgtext)
 private function string of_md5 (blob ablob_data)
 private function blob of_hmacsha1 (ref blob target, ref blob key)
-private function datetime of_utctime ()
 private subroutine skipchar (ref string inputjson, ref long index)
 private function oleobject parseobject (ref string inputjson, ref long index) throws linkhubexception
 private function string parsekey (ref string inputjson, ref long index) throws linkhubexception
@@ -183,6 +182,7 @@ private function string parsestring (ref string str, ref long index)
 private function any parsevalue (ref string str, ref long index) throws linkhubexception
 private function string parseNull (ref string str, ref long index) throws linkhubexception
 public function int lengthArr() throws linkhubexception
+public function any getTime() throws linkhubexception
 end prototypes
 
 private function string of_encode64 (blob ablob_data);String ls_encoded
@@ -395,11 +395,6 @@ CryptReleaseContext(lul_hProv, 0)
 return result
 end function
 
-private function datetime of_utctime ();systemtime t
-getsystemtime(t)
-return DateTime(date(string(t.Year) + "-" + string(t.month) + "-" + string(t.day)),time( string(t.hour) + ":" + string(t.minute) + ":" + string(t.second)))
-end function
-
 private subroutine skipchar (ref string inputjson, ref long index);boolean bComment
 boolean bStartComment
 boolean bLOngComment
@@ -606,7 +601,7 @@ blob lbl_target, lbl_Key
 Integer i
 token resultToken
 
-ls_xDate = string(of_utctime(),"yyyy-MM-dd\THH:mm:ss.000\Z")
+ls_xDate = gettime()
 ls_url = "/" + serviceid + "/Token"
 
 ls_postData = '{"access_id":"'+access_id+'"'
@@ -852,6 +847,34 @@ if mid(str,index,4) = "null" then
 	index = index + 4
 	return ""
 end if
+end function
+
+public function any getTime() throws linkhubexception;
+OLEObject lo_httpRequest,dic
+string ls_result, utcTime
+
+lo_httpRequest = CREATE OLEObject
+if lo_httpRequest.ConnectToNewObject("WinHttp.WinHttpRequest.5.1") <> 0 then throw exception.setCodeNMessage(-99999999,"HttpRequest Create Fail.")
+lo_httpRequest.open("GET",in_ServiceURL + "/Time",false)
+lo_httpRequest.send()
+lo_httpRequest.waitForResponse()
+
+utcTime = string(lo_httpRequest.ResponseText)
+
+if lo_httpRequest.Status <> 200 then 
+	dic = parsejson(ls_result)
+	exception.setCodeNMessage(dic.Item("code"),dic.Item("message"))
+	lo_httpRequest.DisconnectObject()
+	destroy lo_httpRequest
+	dic.DisconnectObject()
+	destroy dic
+	throw exception
+end if
+
+lo_httpRequest.DisconnectObject()
+destroy lo_httpRequest
+
+return utcTime
 end function
 
 on authority.create
